@@ -13,11 +13,14 @@ interface JournalCardProps {
 
 const JournalCard: React.FC<JournalCardProps> = ({ entry, onClose, allEntries, initialIndex, onEditRequest, onDeleteRequest }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [dragDx, setDragDx] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [slideWidth, setSlideWidth] = useState<number>(() => Math.round(Math.min(560, Math.max(300, (typeof window !== 'undefined' ? window.innerWidth : 360) * 0.86))));
+  const trackRef = useRef<HTMLDivElement>(null);
+  const slideWidthRef = useRef<number>(Math.round(Math.min(560, Math.max(300, (typeof window !== 'undefined' ? window.innerWidth : 360) * 0.86))));
+  const startXRef = useRef(0);
+  const baseOffsetRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const pendingXRef = useRef<number | null>(null);
   const GAP = 16;
 
   useEffect(() => {
@@ -29,40 +32,77 @@ const JournalCard: React.FC<JournalCardProps> = ({ entry, onClose, allEntries, i
     }
   }, [entry, allEntries, initialIndex]);
 
+  // measure widths
   useEffect(() => {
     const measure = () => {
       const vp = viewportRef.current;
       const fallback = Math.round(Math.min(560, Math.max(300, window.innerWidth * 0.86)));
-      if (!vp) { setSlideWidth(fallback); return; }
-      const w = vp.getBoundingClientRect().width;
-      setSlideWidth(Math.round((w || fallback) * 0.86));
+      const w = vp ? vp.getBoundingClientRect().width : fallback;
+      slideWidthRef.current = Math.round((w || fallback) * 0.86);
+      // snap transform to current index
+      setTransform(indexToOffset(currentIndex));
     };
     const id = requestAnimationFrame(measure);
     window.addEventListener('resize', measure);
     return () => { cancelAnimationFrame(id); window.removeEventListener('resize', measure); };
-  }, []);
+  }, [currentIndex]);
 
-  const begin = (x: number) => { setIsDragging(true); setStartX(x); setDragDx(0); };
-  const move = (x: number) => { if (!isDragging) return; setDragDx(x - startX); };
+  const indexToOffset = (idx: number) => -(idx * (slideWidthRef.current + GAP));
+
+  const setTransform = (x: number, withTransition = false) => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (withTransition) track.style.transition = 'transform 320ms cubic-bezier(.22,.61,.36,1)';
+    else track.style.transition = 'none';
+    track.style.transform = `translate3d(${x}px,0,0)`;
+  };
+
+  const scheduleTransform = (x: number) => {
+    pendingXRef.current = x;
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      if (pendingXRef.current != null) setTransform(pendingXRef.current);
+      rafRef.current = null;
+    });
+  };
+
+  const begin = (x: number) => {
+    isDraggingRef.current = true;
+    startXRef.current = x;
+    baseOffsetRef.current = indexToOffset(currentIndex);
+    setTransform(baseOffsetRef.current); // ensure no transition at start
+  };
+
+  const move = (x: number) => {
+    if (!isDraggingRef.current) return;
+    const dx = x - startXRef.current;
+    scheduleTransform(baseOffsetRef.current + dx);
+  };
+
   const end = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    const threshold = Math.max(60, slideWidth * 0.2);
-    if (dragDx > threshold && currentIndex > 0) setCurrentIndex(currentIndex - 1);
-    else if (dragDx < -threshold && currentIndex < allEntries.length - 1) setCurrentIndex(currentIndex + 1);
-    setDragDx(0);
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    const track = trackRef.current;
+    if (!track) return;
+    const style = window.getComputedStyle(track);
+    const matrix = new WebKitCSSMatrix(style.transform);
+    const currentX = matrix.m41; // current translateX
+    const dx = currentX - baseOffsetRef.current;
+    const threshold = Math.max(60, slideWidthRef.current * 0.2);
+    let nextIndex = currentIndex;
+    if (dx > threshold && currentIndex > 0) nextIndex = currentIndex - 1;
+    else if (dx < -threshold && currentIndex < allEntries.length - 1) nextIndex = currentIndex + 1;
+    setCurrentIndex(nextIndex);
+    setTransform(indexToOffset(nextIndex), true);
   };
 
   const onTouchStart = (e: React.TouchEvent) => { e.stopPropagation(); begin(e.touches[0].clientX); };
-  const onTouchMove = (e: React.TouchEvent) => { if (isDragging) { e.preventDefault(); move(e.touches[0].clientX); } };
+  const onTouchMove = (e: React.TouchEvent) => { if (isDraggingRef.current) { e.preventDefault(); move(e.touches[0].clientX); } };
   const onTouchEnd = () => end();
   const onMouseDown = (e: React.MouseEvent) => { e.preventDefault(); begin(e.clientX); };
   const onMouseMove = (e: React.MouseEvent) => move(e.clientX);
   const onMouseUp = () => end();
   const onMouseLeave = () => end();
-
-  const baseOffset = -(currentIndex * (slideWidth + GAP));
-  const trackStyle: React.CSSProperties = { transform: `translateX(${baseOffset + dragDx}px)`, transition: isDragging ? 'none' : 'transform 300ms ease-out' };
 
   const formatDate = (dateString: string) => parseDateString(dateString).toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
   const renderStars = (rating: number) => Array.from({ length: 5 }, (_, i) => (<span key={i} className={i < Math.round(rating) ? 'text-blue-400' : 'text-gray-300'}>★</span>));
@@ -83,11 +123,11 @@ const JournalCard: React.FC<JournalCardProps> = ({ entry, onClose, allEntries, i
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
+        style={{ cursor: isDraggingRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y', willChange: 'transform' }}
       >
-        <div className="flex items-stretch" style={{ gap: GAP, ...trackStyle }}>
+        <div ref={trackRef} className="flex items-stretch" style={{ gap: GAP }}>
           {allEntries.map((item, idx) => (
-            <div key={idx} className="bg-white rounded-2xl shadow-2xl overflow-hidden flex-none" style={{ width: slideWidth }}>
+            <div key={idx} className="bg-white rounded-2xl shadow-2xl overflow-hidden flex-none" style={{ width: slideWidthRef.current }}>
               <div className="px-4 pt-4">
                 <div className="rounded-xl overflow-hidden shadow ring-1 ring-black/5">
                   <img src={item.imgUrl} alt="Journal entry" className="w-full h-72 object-cover" />
