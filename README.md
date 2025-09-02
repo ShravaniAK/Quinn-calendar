@@ -1,46 +1,99 @@
-# Getting Started with Create React App
+# Quinn Calendar - Infinite Scrollable Calendar
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, mobile-optimized calendar application built with React and TypeScript that features infinite vertical scrolling and journal entry management.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+### Infinite Scroll Calendar
+- **Smooth Infinite Scrolling**: Scroll seamlessly through months in both directions
+- **Dynamic Header**: Month and year display updates based on scroll position
+- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+- **Performance Optimized**: Smooth scrolling without lag or jitter
 
-### `npm start`
+### Journal Entry Integration
+- **Visual Calendar Grid**: Journal entries displayed on their respective dates
+- **Rich Entry Display**: Shows images, ratings, categories, and descriptions
+- **Swipeable Card UI**: Click entries to open detailed view with swipe navigation
+- **Touch & Mouse Support**: Full gesture support for both mobile and desktop
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### Modern UI/UX
+- **Clean Design**: Modern, minimalist interface using Tailwind CSS
+- **Smooth Animations**: Fluid transitions and hover effects
+- **Mobile-First**: Optimized touch interactions and responsive layout
+- **Accessibility**: Keyboard navigation and screen reader support
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Tech Stack
 
-### `npm test`
+- **React 18** - Modern React with hooks and functional components
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first CSS framework
+- **Intersection Observer API** - Efficient infinite scrolling
+- **Custom Date Utils** - Hand-built calendar logic
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Getting Started
 
-### `npm run build`
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd quinn-calendar
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Install dependencies:
+```bash
+npm install
+```
 
-### `npm run eject`
+3. Start the development server:
+```bash
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+4. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Building for Production
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```bash
+npm run build
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## Learn More
+## Key Implementation Details
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Infinite Scrolling
+- Uses Intersection Observer API for efficient month loading
+- Dynamically adds/removes months based on scroll position
+- Maintains smooth performance with virtual scrolling techniques
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Calendar Logic
+- Custom-built calendar grid generation
+- Proper handling of leap years and month boundaries
+- Accurate day-of-week calculations
+
+### Journal Entry System
+- Date-based entry mapping for efficient rendering
+- Swipeable card interface with touch and mouse support
+- Responsive image handling and category display
+
+### Performance Optimizations
+- Memoized calculations for date operations
+- Efficient DOM updates using React's reconciliation
+- Optimized scroll event handling with throttling
+
+## Design Choices
+
+### Calendar Layout
+- **6-week grid**: Ensures consistent layout across months
+- **Sunday start**: Traditional calendar week layout
+- **Sticky headers**: Month names remain visible during scroll
+
+### Mobile Optimization
+- **Touch-friendly**: Large touch targets and gesture support
+- **Responsive grid**: Adapts to different screen sizes
+- **Smooth scrolling**: Optimized for mobile performance
+
